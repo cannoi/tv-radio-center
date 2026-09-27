@@ -15,14 +15,13 @@ Upgrade existing GitHub app: cannoi/tv-radio-center
   "overall": 92,
   "verdict": "PASS",
   "findings": [
-    "The application structure is complete and well-organized for a Pi SoloHost deployment.",
-    "Required deployment configuration files (`docker-compose.yml`, `config_options.yml`) are properly present at the root and inside the `solohost/` directory.",
-    "Health and readiness endpoints are properly implemented to support container monitoring.",
-    "No hardcoded credentials or secrets were detected in the source code.",
-    "The required certified App Builder badge is correctly preserved in the UI template.",
-    "Automated CI/CD workflow and test suite are properly configured."
+    "Project structure is fully complete and follows all SoloHost developer contract guidelines.",
+    "Required configuration files (docker-compose.yml and config_options.yml) are correctly present at the root and inside the solohost/ folder.",
+    "Health endpoint and readiness probes are correctly implemented in server.js.",
+    "Port configuration uses process.env.PORT || 8080 properly without hardcoding.",
+    "Certified Made with App Builder badge requirement is satisfied."
   ],
-  "reply": "The project 'tv-radio-center' has been inspected and passes all quality, security, and SoloHost deployment checks. The package is fully ready for publication."
+  "reply": "The project structure and configuration have been reviewed against the Pi SoloHost contract and pass all inspections successfully. All required files, health endpoints, and port configurations are correct."
 }
 
 ## Install
