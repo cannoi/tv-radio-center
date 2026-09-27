@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TV & Radio Center</title>
+  <!-- Hls.js for HLS stream support -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --text-color: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-hover: #0ea5e9;
+      --danger: #f43f5e;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background-color: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    h1 { font-size: 1.5rem; color: var(--accent); }
+    .header-actions { display: flex; gap: 1rem; align-items: center; }
+    .btn {
+      background-color: var(--accent);
+      color: #0f172a;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn:hover { background-color: var(--accent-hover); }
+    .btn-outline {
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+    }
+    .btn-outline:hover { background: rgba(56, 189, 248, 0.1); }
+    .btn-danger {
+      background-color: var(--danger);
+      color: white;
+    }
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      gap: 1.5rem;
+      padding: 1.5rem 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    @media (max-width: 1024px) {
+      main { grid-template-columns: 1fr; }
+    }
+    .player-section {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .player-container {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: #000;
+      border-radius: 0.5rem;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    video, audio {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .audio-visual {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      color: var(--text-muted);
+      width: 100%;
+      height: 100%;
+    }
+    .now-playing-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .now-playing-title { font-size: 1.25rem; font-weight: bold; }
+    .controls-panel {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      max-height: calc(100vh - 120px);
+      position: sticky;
+      top: 1.5rem;
+    }
+    .search-filter { display: flex; gap: 0.5rem; flex-direction: column; }
+    input, select {
+      background: var(--bg-color);
+      border: 1px solid var(--border);
+      color: var(--text-color);
+      padding: 0.5rem;
+      border-radius: 0.375rem;
+      width: 100%;
+    }
+    .tabs { display: flex; gap: 0.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+    .tab {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      font-weight: 600;
+      border-radius: 0.375rem;
+    }
+    .tab.active {
+      background: var(--border);
+      color: var(--text-color);
+    }
+    .channel-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 400px;
+    }
+    .channel-item {
+      background: var(--bg-color);
+      border: 1px solid var(--border);
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .channel-item:hover { border-color: var(--accent); }
+    .channel-item.active { border-color: var(--accent); background: rgba(56, 189, 248, 0.05); }
+    .channel-meta h4 { font-size: 0.95rem; }
+    .channel-meta span { font-size: 0.8rem; color: var(--text-muted); }
+    .channel-actions { display: flex; gap: 0.5rem; align-items: center; }
+    .fav-btn, .del-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      color: var(--text-muted);
+    }
+    .fav-btn.active { color: var(--danger); }
+    .del-btn:hover { color: var(--danger); }
+    /* Modal */
+    .modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: none; align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+    .modal.open { display: flex; }
+    .modal-content {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 2rem;
+      border-radius: 0.75rem;
+      width: 100%;
+      max-width: 450px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 0.3rem; }
+    .form-group label { font-size: 0.85rem; color: var(--text-muted); }
+    .timer-display { font-size: 0.9rem; color: var(--accent); }
+    .paf-made-by { font-size: 0.75rem; color: var(--text-muted); text-align: center; padding: 0.5rem; }
+  </style>
+<style>.paf-made-by{position:fixed;right:8px;bottom:8px;width:min(72px,12vw);max-width:12vw;height:auto;object-fit:contain;opacity:.5;background:transparent;padding:0;border:0;box-shadow:none;filter:none;pointer-events:none;z-index:30}</style></head>
+<body>
+  <header>
+    <h1>📺 TV & Radio Center</h1>
+    <div class="header-actions">
+      <span id="sleepTimerStatus" class="timer-display"></span>
+      <button class="btn btn-outline" onclick="openTimerModal()">⏰ Sleep Timer</button>
+      <button class="btn" onclick="openModal()">+ Add Channel</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="player-section">
+      <div class="player-container" id="playerWrapper">
+        <div class="audio-visual" id="idleVisual">
+          <span style="font-size: 3rem;">📻</span>
+          <p>Select a channel from the list to start watching or listening</p>
+        </div>
+        <video id="videoPlayer" controls style="display: none;"></video>
+        <audio id="audioPlayer" controls style="display: none;"></audio>
+      </div>
+      <div class="now-playing-info">
+        <div>
+          <div class="now-playing-title" id="currentTitle">No channel selected</div>
+          <div id="currentCategory" style="color: var(--text-muted); font-size: 0.9rem;">Choose your favorite station</div>
+        </div>
+        <button class="fav-btn" id="currentFavBtn" onclick="toggleCurrentFavorite()" style="font-size: 1.5rem;">🤍</button>
+      </div>
+    </section>
+
+    <aside class="controls-panel">
+      <div class="search-filter">
+        <input type="text" id="searchInput" placeholder="Search channels..." oninput="filterChannels()">
+        <select id="categoryFilter" onchange="filterChannels()">
+          <option value="all">All Categories</option>
+          <option value="News">News</option>
+          <option value="Sports">Sports</option>
+          <option value="Music">Music</option>
+          <option value="Entertainment">Entertainment</option>
+        </select>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('all', this)">All</button>
+        <button class="tab" onclick="switchTab('tv', this)">TV</button>
+        <button class="tab" onclick="switchTab('radio', this)">Radio</button>
+        <button class="tab" onclick="switchTab('favorites', this)">Favorites ❤️</button>
+      </div>
+
+      <div class="channel-list" id="channelList">
+        <!-- Channels rendered via JS -->
+      </div>
+    </aside>
+  </main>
+
+  <!-- Add Channel Modal -->
+  <div class="modal" id="addModal">
+    <div class="modal-content">
+      <h3>Add Custom Channel</h3>
+      <div class="form-group">
+        <label>Channel Name</label>
+        <input type="text" id="addName" placeholder="e.g., My Favorite Radio">
+      </div>
+      <div class="form-group">
+        <label>Type</label>
+        <select id="addType">
+          <option value="radio">Radio (MP3/AAC)</option>
+          <option value="tv">TV (HLS/M3U8)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="addCategory">
+          <option value="Music">Music</option>
+          <option value="News">News</option>
+          <option value="Sports">Sports</option>
+          <option value="Entertainment">Entertainment</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Stream URL (.m3u8 or .mp3)</label>
+        <input type="text" id="addUrl" placeholder="https://example.com/stream.m3u8">
+      </div>
+      <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem;">
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn" onclick="saveChannel()">Save Channel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sleep Timer Modal -->
+  <div class="modal" id="timerModal">
+    <div class="modal-content">
+      <h3>Set Sleep Timer</h3>
+      <div class="form-group">
+        <label>Turn off after (minutes)</label>
+        <select id="timerMinutes">
+          <option value="0">Disable Timer</option>
+          <option value="15">15 minutes</option>
+          <option value="30">30 minutes</option>
+          <option value="60">60 minutes</option>
+          <option value="120">120 minutes</option>
+        </select>
+      </div>
+      <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem;">
+        <button class="btn btn-outline" onclick="closeTimerModal()">Cancel</button>
+        <button class="btn" onclick="applyTimer()">Set Timer</button>
+      </div>
+    </div>
+  </div>
+
+  
+
+  <script>
+    let channels = [];
+    let favorites = JSON.parse(localStorage.getItem('tv_radio_favorites') || '[]');
+    let currentChannel = null;
+    let currentTab = 'all';
+    let hlsInstance = null;
+    let sleepTimer = null;
+    let timerEndTime = null;
+
+    async function fetchChannels() {
+      try {
+        const res = await fetch('/api/channels');
+        const data = await res.json();
+        channels = data.channels || [];
+        renderChannels();
+      } catch (err) {
+        console.error('Failed to load channels', err);
+      }
+    }
+
+    function renderChannels() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const catFilter = document.getElementById('categoryFilter').value;
+      const listEl = document.getElementById('channelList');
+
+      let filtered = channels.filter(c => {
+        const matchSearch = c.name.toLowerCase().includes(search) || c.category.toLowerCase().includes(search);
+        const matchCat = catFilter === 'all' || c.category === catFilter;
+        const matchTab = currentTab === 'all' || 
+                         (currentTab === 'tv' && c.type === 'tv') || 
+                         (currentTab === 'radio' && c.type === 'radio') || 
+                         (currentTab === 'favorites' && favorites.includes(c.id));
+        return matchSearch && matchCat && matchTab;
+      });
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 2rem;">No channels found</p>';
+        return;
+      }
+
+      listEl.innerHTML = filtered.map(c => {
+        const isFav = favorites.includes(c.id);
+        const isActive = currentChannel && currentChannel.id === c.id;
+        return `
+          <div class="channel-item ${isActive ? 'active' : ''}" onclick="playChannel(${c.id})">
+            <div class="channel-meta">
+              <h4>${c.type === 'tv' ? '📺' : '📻'} ${escapeHtml(c.name)}</h4>
+              <span>${escapeHtml(c.category)} ${c.is_custom ? '• Custom' : ''}</span>
+            </div>
+            <div class="channel-actions" onclick="event.stopPropagation()">
+              <button class="fav-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite(${c.id})">${isFav ? '❤️' : '🤍'}</button>
+              ${c.is_custom ? `<button class="del-btn" onclick="deleteChannel(${c.id})">🗑️</button>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function playChannel(id) {
+      const channel = channels.find(c => c.id === id);
+      if (!channel) return;
+      currentChannel = channel;
+
+      document.getElementById('idleVisual').style.display = 'none';
+      const videoEl = document.getElementById('videoPlayer');
+      const audioEl = document.getElementById('audioPlayer');
+
+      document.getElementById('currentTitle').textContent = channel.name;
+      document.getElementById('currentCategory').textContent = `${channel.type.toUpperCase()} • ${channel.category}`;
+      updateCurrentFavUI();
+
+      if (hlsInstance) {
+        hlsInstance.destroy();
+        hlsInstance = null;
+      }
+
+      if (channel.type === 'tv') {
+        videoEl.style.display = 'block';
+        audioEl.style.display = 'none';
+        audioEl.pause();
+
+        if (Hls.isSupported() && channel.stream_url.includes('.m3u8')) {
+          hlsInstance = new Hls();
+          hlsInstance.loadSource(channel.stream_url);
+          hlsInstance.attachMedia(videoEl);
+          hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => { videoEl.play().catch(e => console.log('Autoplay blocked', e)); });
+        } else {
+          videoEl.src = channel.stream_url;
+          videoEl.play().catch(e => console.log('Autoplay blocked', e));
+        }
+      } else {
+        videoEl.style.display = 'none';
+        videoEl.pause();
+        audioEl.style.display = 'block';
+        audioEl.src = channel.stream_url;
+        audioEl.play().catch(e => console.log('Autoplay blocked', e));
+      }
+
+      renderChannels();
+    }
+
+    function toggleFavorite(id) {
+      if (favorites.includes(id)) {
+        favorites = favorites.filter(fav => fav !== id);
+      } else {
+        favorites.push(id);
+      }
+      localStorage.setItem('tv_radio_favorites', JSON.stringify(favorites));
+      renderChannels();
+      updateCurrentFavUI();
+    }
+
+    function toggleCurrentFavorite() {
+      if (!currentChannel) return;
+      toggleFavorite(currentChannel.id);
+    }
+
+    function updateCurrentFavUI() {
+      const btn = document.getElementById('currentFavBtn');
+      if (!currentChannel) {
+        btn.textContent = '🤍';
+        btn.classList.remove('active');
+        return;
+      }
+      if (favorites.includes(currentChannel.id)) {
+        btn.textContent = '❤️';
+        btn.classList.add('active');
+      } else {
+        btn.textContent = '🤍';
+        btn.classList.remove('active');
+      }
+    }
+
+    function switchTab(tab, el) {
+      currentTab = tab;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      renderChannels();
+    }
+
+    function filterChannels() {
+      renderChannels();
+    }
+
+    function openModal() { document.getElementById('addModal').classList.add('open'); }
+    function closeModal() { document.getElementById('addModal').classList.remove('open'); }
+    function openTimerModal() { document.getElementById('timerModal').classList.add('open'); }
+    function closeTimerModal() { document.getElementById('timerModal').classList.remove('open'); }
+
+    async function saveChannel() {
+      const name = document.getElementById('addName').value.trim();
+      const type = document.getElementById('addType').value;
+      const category = document.getElementById('addCategory').value;
+      const stream_url = document.getElementById('addUrl').value.trim();
+
+      if (!name || !stream_url) {
+        alert('Please fill in all required fields.');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/channels', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, type, category, stream_url })
+        });
+        if (res.ok) {
+          closeModal();
+          document.getElementById('addName').value = '';
+          document.getElementById('addUrl').value = '';
+          fetchChannels();
+        } else {
+          alert('Failed to save channel.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Network error while saving channel.');
+      }
+    }
+
+    async function deleteChannel(id) {
+      if (!confirm('Are you sure you want to delete this custom channel?')) return;
+      try {
+        const res = await fetch(`/api/channels/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          if (currentChannel && currentChannel.id === id) {
+            stopPlayer();
+          }
+          fetchChannels();
+        } else {
+          alert('Failed to delete channel.');
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function stopPlayer() {
+      currentChannel = null;
+      document.getElementById('videoPlayer').pause();
+      document.getElementById('audioPlayer').pause();
+      document.getElementById('videoPlayer').style.display = 'none';
+      document.getElementById('audioPlayer').style.display = 'none';
+      document.getElementById('idleVisual').style.display = 'flex';
+      document.getElementById('currentTitle').textContent = 'No channel selected';
+      document.getElementById('currentCategory').textContent = 'Choose your favorite station';
+      updateCurrentFavUI();
+      renderChannels();
+    }
+
+    function applyTimer() {
+      const mins = parseInt(document.getElementById('timerMinutes').value);
+      closeTimerModal();
+      if (sleepTimer) clearInterval(sleepTimer);
+
+      if (mins === 0) {
+        timerEndTime = null;
+        document.getElementById('sleepTimerStatus').textContent = '';
+        return;
+      }
+
+      timerEndTime = Date.now() + mins * 60 * 1000;
+      document.getElementById('sleepTimerStatus').textContent = `⏰ Sleep timer: ${mins}m`;
+
+      sleepTimer = setInterval(() => {
+        const remaining = timerEndTime - Date.now();
+        if (remaining <= 0) {
+          clearInterval(sleepTimer);
+          sleepTimer = null;
+          timerEndTime = null;
+          document.getElementById('sleepTimerStatus').textContent = '';
+          stopPlayer();
+          alert('Sleep timer reached. Playback stopped.');
+        } else {
+          const remMins = Math.ceil(remaining / 60000);
+          document.getElementById('sleepTimerStatus').textContent = `⏰ Sleep timer: ${remMins}m`;
+        }
+      }, 1000);
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    fetchChannels();
+  </script>
+<img class="paf-made-by" src="/made-by.png" alt="Made with App Builder — Pi SoloHost"></body>
+</html>

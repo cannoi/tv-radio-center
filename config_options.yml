@@ -1,0 +1,7 @@
+title: "TV & Radio Center"
+eyebrow: SoloHost App
+description: "Tạo cho tôi app :  TV & Radio Center     ứng dụng trung tâm TV và radio sử dụng các nguồn phát hợp pháp, cho phép quản lý kênh yêu thích."
+footer_hint: Ready to run on Pi Desktop SoloHost.
+output_file: .env
+after_save: Saved. Start the app from SoloHost.
+fields: []
